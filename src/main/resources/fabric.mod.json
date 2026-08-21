@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "appleskin",
+  "version": "3.0.10+mc26.2",
+
+  "name": "AppleSkin+-",
+  "description": "Always-on saturation and exhaustion HUD visualization",
+  "authors": [
+    "Apple"
+  ],
+  "contact": {
+    "sources": "https://github.com/plinthlol/appleskinplusminus",
+    "issues": "https://github.com/plinthlol/appleskinplusminus/issues"
+  },
+
+  "license": "Unlicense",
+  "icon": "assets/appleskin/appleskin.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "squeek.appleskin.AppleSkin"
+    ],
+    "main": [
+      "squeek.appleskin.AppleSkinCommon"
+    ]
+  },
+  "mixins": [
+    "appleskin.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.15.10",
+    "fabric-api": "*"
+  }
+}
