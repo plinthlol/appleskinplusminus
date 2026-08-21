@@ -9,9 +9,8 @@
     "Apple"
   ],
   "contact": {
-    "sources": "https://github.com/squeek502/AppleSkin",
-    "homepage": "https://modrinth.com/mod/appleskin",
-    "issues": "https://github.com/squeek502/AppleSkin/issues"
+    "sources": "https://github.com/plinthlol/appleskinplusminus",
+    "issues": "https://github.com/plinthlol/appleskinplusminus/issues"
   },
 
   "license": "Unlicense",
