@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "package": "squeek.appleskin.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "ServerPlayerMixin",
+    "PlayerListMixin",
+    "FoodDataMixin"
+  ],
+  "client": [
+    "HudMixin",
+    "LungeSaturationFixMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1,
+    "maxShiftBy": 2
+  }
+}
