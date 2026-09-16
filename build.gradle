@@ -3,7 +3,7 @@ plugins {
 	id 'maven-publish'
 }
 
-version = '1.0.0'
+version = '1.5'
 
 repositories {
 	// Add repositories to retrieve artifacts from in here.
