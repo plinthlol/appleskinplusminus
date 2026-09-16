@@ -1,0 +1,88 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to use (e.g. v1.2.3) - pick the branch above too'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag if it doesn't exist
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git fetch --tags
+          if git rev-parse "${{ steps.tag.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag ${{ steps.tag.outputs.tag }} already exists, reusing it."
+          else
+            echo "Creating tag ${{ steps.tag.outputs.tag }} on $(git rev-parse --abbrev-ref HEAD)"
+            git tag "${{ steps.tag.outputs.tag }}"
+            git push origin "${{ steps.tag.outputs.tag }}"
+          fi
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build
+        run: ./gradlew build --stacktrace
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: appleskin-jars
+          path: build/libs/*.jar
+
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: build/libs/*.jar
+          generate_release_notes: true
+
+      - name: Get versions
+        id: ver
+        run: |
+          echo "mc=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          echo "mod=${TAG#v}" >> "$GITHUB_OUTPUT"
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+
+      - name: Publish to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3.1
+        with:
+          modrinth-id: DROUMbsz
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: build/libs/*.jar
+          loaders: fabric
+          game-versions: ${{ steps.ver.outputs.mc }}
+          version: ${{ steps.ver.outputs.mod }}
+          name: "AppleSkin+- ${{ steps.ver.outputs.mod }} (MC ${{ steps.ver.outputs.mc }})"
+          version-type: release
+          changelog: ${{ github.event.head_commit.message }}
