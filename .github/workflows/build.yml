@@ -95,6 +95,14 @@ jobs:
           tail -c 900000 build.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Add branch/tag suffix to jar names
+        run: |
+          SAFE_REF=$(echo "${{ github.ref_name }}" | tr '/' '-')
+          for f in build/libs/*.jar; do
+            [ -e "$f" ] || continue
+            mv "$f" "${f%.jar}-${SAFE_REF}.jar"
+          done
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
