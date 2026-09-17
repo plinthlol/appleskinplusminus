@@ -90,6 +90,7 @@ jobs:
         with:
           name: appleskin-jars
           path: build/libs/*.jar
+          retention-days: ${{ (github.event_name == 'workflow_dispatch' && !inputs.github_release) && 1 || 90 }}
 
       - name: Release
         if: github.event_name == 'push' || inputs.github_release
