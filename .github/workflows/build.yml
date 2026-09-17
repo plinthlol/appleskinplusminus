@@ -7,9 +7,19 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to use (e.g. v1.2.3) - pick the branch above too'
+        description: 'Tag to release'
         required: true
         type: string
+      github_release:
+        description: 'Create GitHub release'
+        required: false
+        type: boolean
+        default: true
+      modrinth_release:
+        description: 'Publish to Modrinth (ignored if GitHub release is off)'
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -41,6 +51,28 @@ jobs:
             git push origin "${{ steps.tag.outputs.tag }}"
           fi
 
+      - name: Determine mod version
+        id: modver
+        run: |
+          USE_TAG=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            USE_TAG=true
+          elif [ "${{ github.event_name == 'workflow_dispatch' && inputs.github_release && inputs.modrinth_release }}" = "true" ]; then
+            USE_TAG=true
+          fi
+
+          if [ "$USE_TAG" = "true" ]; then
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+
+      - name: Set version in build.gradle
+        if: steps.modver.outputs.version != ''
+        run: sed -i "s/^version = '.*'/version = '${{ steps.modver.outputs.version }}'/" build.gradle
+
       - name: Set up JDK 25
         uses: actions/setup-java@v6
         with:
@@ -60,6 +92,7 @@ jobs:
           path: build/libs/*.jar
 
       - name: Release
+        if: github.event_name == 'push' || inputs.github_release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
@@ -70,11 +103,9 @@ jobs:
         id: ver
         run: |
           echo "mc=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
-          echo "mod=${TAG#v}" >> "$GITHUB_OUTPUT"
-        env:
-          TAG: ${{ steps.tag.outputs.tag }}
 
       - name: Publish to Modrinth
+        if: github.event_name == 'push' || (inputs.github_release && inputs.modrinth_release)
         uses: Kir-Antipov/mc-publish@v3.3.1
         with:
           modrinth-id: DROUMbsz
@@ -82,7 +113,7 @@ jobs:
           files: build/libs/*.jar
           loaders: fabric
           game-versions: ${{ steps.ver.outputs.mc }}
-          version: ${{ steps.ver.outputs.mod }}
-          name: "AppleSkin+- ${{ steps.ver.outputs.mod }} (MC ${{ steps.ver.outputs.mc }})"
+          version: ${{ steps.modver.outputs.version || '1.5' }}
+          name: "AppleSkin+- ${{ steps.modver.outputs.version || '1.5' }} (MC ${{ steps.ver.outputs.mc }})"
           version-type: release
           changelog: ${{ github.event.head_commit.message }}
