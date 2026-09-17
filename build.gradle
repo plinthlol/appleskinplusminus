@@ -1,70 +1,119 @@
-plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
-	id 'maven-publish'
-}
+name: Build
 
-version = '1.5'
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+        type: string
+      github_release:
+        description: 'Create GitHub release'
+        required: false
+        type: boolean
+        default: true
+      modrinth_release:
+        description: 'Publish to Modrinth (ignored if GitHub release is off)'
+        required: false
+        type: boolean
+        default: true
 
-repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
-}
+permissions:
+  contents: write
 
-dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-}
+      - name: Create tag if it doesn't exist
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git fetch --tags
+          if git rev-parse "${{ steps.tag.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag ${{ steps.tag.outputs.tag }} already exists, reusing it."
+          else
+            echo "Creating tag ${{ steps.tag.outputs.tag }} on $(git rev-parse --abbrev-ref HEAD)"
+            git tag "${{ steps.tag.outputs.tag }}"
+            git push origin "${{ steps.tag.outputs.tag }}"
+          fi
 
-processResources {
-	def version = project.version
-	inputs.property "version", version
+      - name: Determine mod version
+        id: modver
+        run: |
+          USE_TAG=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            USE_TAG=true
+          elif [ "${{ github.event_name == 'workflow_dispatch' && inputs.github_release && inputs.modrinth_release }}" = "true" ]; then
+            USE_TAG=true
+          fi
 
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
+          if [ "$USE_TAG" = "true" ]; then
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
 
-tasks.withType(JavaCompile).configureEach {
-    options.incremental = true
-	it.options.release = 25
-}
+      - name: Set version in build.gradle
+        if: steps.modver.outputs.version != ''
+        run: sed -i "s/^version = '.*'/version = '${{ steps.modver.outputs.version }}'/" build.gradle
 
-java {
-	// Sources jar generation is disabled; re-add `withSourcesJar()` to restore it.
+      - name: Set up JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
 
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
-}
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
 
-jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
+      - name: Build
+        run: ./gradlew build --stacktrace
 
-	from("LICENSE") {
-		rename { "${it}_$projectName"}
-	}
-}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: appleskin-jars
+          path: build/libs/*.jar
 
-// configure the maven publication
-publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			from components.java
-		}
-	}
+      - name: Release
+        if: github.event_name == 'push' || inputs.github_release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: build/libs/*.jar
+          generate_release_notes: true
 
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
-	}
-}
+      - name: Get versions
+        id: ver
+        run: |
+          echo "mc=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Modrinth
+        if: github.event_name == 'push' || (inputs.github_release && inputs.modrinth_release)
+        uses: Kir-Antipov/mc-publish@v3.3.1
+        with:
+          modrinth-id: DROUMbsz
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: build/libs/*.jar
+          loaders: fabric
+          game-versions: ${{ steps.ver.outputs.mc }}
+          version: ${{ steps.modver.outputs.version || '1.5' }}
+          name: "AppleSkin+- ${{ steps.modver.outputs.version || '1.5' }} (MC ${{ steps.ver.outputs.mc }})"
+          version-type: release
+          changelog: ${{ github.event.head_commit.message }}
