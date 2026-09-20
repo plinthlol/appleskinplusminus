@@ -1,4 +1,3 @@
-# AppleSkin+-
 
 <p align="center">
   <a href="https://modrinth.com/mod/appleskinplusminus">
@@ -9,4 +8,3 @@
   </a>
 </p>
 
-Always-on saturation and exhaustion HUD visualization for Minecraft (Fabric).
