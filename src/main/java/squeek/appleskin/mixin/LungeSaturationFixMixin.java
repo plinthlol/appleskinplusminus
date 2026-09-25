@@ -4,8 +4,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -49,15 +49,7 @@ public abstract class LungeSaturationFixMixin {
 		}
 
 		ItemStack weapon = player.getMainHandItem();
-		ItemEnchantments enchantments = weapon.getEnchantments();
-		int lungeLevel = 0;
-
-		for (var entry : enchantments.entrySet()) {
-			if (entry.getKey().is(Enchantments.LUNGE)) {
-				lungeLevel = entry.getIntValue();
-				break;
-			}
-		}
+		int lungeLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.LUNGE, weapon);
 
 		if (lungeLevel <= 0) {
 			return;

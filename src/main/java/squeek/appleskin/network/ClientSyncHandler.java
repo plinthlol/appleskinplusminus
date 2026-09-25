@@ -3,7 +3,11 @@ package squeek.appleskin.network;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.world.entity.player.Player;
 import squeek.appleskin.helpers.ExhaustionHelper;
+import squeek.appleskin.network.ExhaustionSyncPayload;
+import squeek.appleskin.network.NaturalRegenerationSyncPayload;
+import squeek.appleskin.network.SaturationSyncPayload;
 
 public class ClientSyncHandler {
 	public static boolean naturalRegeneration = true;
@@ -18,16 +22,18 @@ public class ClientSyncHandler {
 
 	@Environment(EnvType.CLIENT)
 	public static void init() {
-		ClientPlayNetworking.registerGlobalReceiver(ExhaustionSyncPayload.TYPE,
-				(payload, context) -> context.client().execute(
-						() -> ExhaustionHelper.setExhaustion(context.client().player, payload.exhaustion())));
 		ClientPlayNetworking.registerGlobalReceiver(SaturationSyncPayload.TYPE,
-				(payload, context) -> context.client().execute(() -> {
+				(SaturationSyncPayload payload, ClientPlayNetworking.Context context) -> {
 					serverSyncsSaturation = true;
-					context.client().player.getFoodData().setSaturation(payload.saturation());
-				}));
+					context.client().execute(() ->
+							context.client().player.getFoodData().setSaturation(payload.saturation()));
+				});
+		ClientPlayNetworking.registerGlobalReceiver(ExhaustionSyncPayload.TYPE,
+				(ExhaustionSyncPayload payload, ClientPlayNetworking.Context context) ->
+						context.client().execute(() ->
+								ExhaustionHelper.setExhaustion((Player) context.client().player, payload.exhaustion())));
 		ClientPlayNetworking.registerGlobalReceiver(NaturalRegenerationSyncPayload.TYPE,
-				(payload, context) -> {
+				(NaturalRegenerationSyncPayload payload, ClientPlayNetworking.Context context) -> {
 					naturalRegeneration = payload.naturalRegeneration();
 				});
 	}
