@@ -1,17 +1,17 @@
 {
-  "required": true,
-  "package": "squeek.appleskin.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "ServerPlayerEntityMixin",
-    "PlayerManagerMixin",
-    "HungerManagerMixin"
-  ],
-  "client": [
-    "InGameHudMixin"
-  ],
-  "injectors": {
-    "defaultRequire": 1,
-    "maxShiftBy": 2
-  }
+	"required": true,
+	"package": "squeek.appleskin.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"ServerPlayerMixin",
+		"PlayerListMixin",
+		"FoodDataMixin"
+	],
+	"client": [
+		"GuiMixin",
+		"LungeSaturationFixMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
 }

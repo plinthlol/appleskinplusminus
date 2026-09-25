@@ -1,28 +1,24 @@
 package squeek.appleskin.network;
 
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
-public record SaturationSyncPayload(float saturation) implements CustomPayload {
-    public static final PacketCodec<PacketByteBuf, SaturationSyncPayload> CODEC = CustomPayload.codecOf(SaturationSyncPayload::write, SaturationSyncPayload::new);
-    public static final CustomPayload.Id<SaturationSyncPayload> ID = new Id<>(Identifier.of("appleskin", "saturation"));
+public record SaturationSyncPayload(float saturation) implements CustomPacketPayload {
+	public static final Type<SaturationSyncPayload> TYPE =
+			new Type<>(Identifier.fromNamespaceAndPath("appleskin", "saturation_sync"));
 
-    public SaturationSyncPayload(PacketByteBuf buf) {
-        this(buf.readFloat());
-    }
+	public static final StreamCodec<RegistryFriendlyByteBuf, SaturationSyncPayload> CODEC =
+			StreamCodec.composite(
+					ByteBufCodecs.FLOAT,
+					SaturationSyncPayload::saturation,
+					SaturationSyncPayload::new
+			);
 
-    public void write(PacketByteBuf buf) {
-        buf.writeFloat(saturation);
-    }
-
-    public float getSaturation() {
-        return saturation;
-    }
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-        return ID;
-    }
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
+	}
 }
