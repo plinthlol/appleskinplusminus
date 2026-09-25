@@ -2,8 +2,6 @@ package squeek.appleskin.api.event;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.world.food.FoodProperties;
-import net.minecraft.world.item.ItemStack;
 import squeek.appleskin.api.handler.EventHandler;
 
 public class HUDOverlayEvent {
@@ -16,36 +14,6 @@ public class HUDOverlayEvent {
         this.x = x;
         this.y = y;
         this.context = context;
-    }
-
-    public static class HealthRestored
-    extends HUDOverlayEvent {
-        public final FoodProperties foodComponent;
-        public final ItemStack itemStack;
-        public final float modifiedHealth;
-        public static Event<EventHandler<HealthRestored>> EVENT = EventHandler.createArrayBacked();
-
-        public HealthRestored(float modifiedHealth, ItemStack itemStack, FoodProperties foodComponent, int x, int y, GuiGraphicsExtractor context) {
-            super(x, y, context);
-            this.modifiedHealth = modifiedHealth;
-            this.itemStack = itemStack;
-            this.foodComponent = foodComponent;
-        }
-    }
-
-    public static class HungerRestored
-    extends HUDOverlayEvent {
-        public final FoodProperties foodComponent;
-        public final ItemStack itemStack;
-        public final int currentFoodLevel;
-        public static Event<EventHandler<HungerRestored>> EVENT = EventHandler.createArrayBacked();
-
-        public HungerRestored(int foodLevel, ItemStack itemStack, FoodProperties foodComponent, int x, int y, GuiGraphicsExtractor context) {
-            super(x, y, context);
-            this.currentFoodLevel = foodLevel;
-            this.itemStack = itemStack;
-            this.foodComponent = foodComponent;
-        }
     }
 
     public static class Saturation
