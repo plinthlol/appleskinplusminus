@@ -3,6 +3,7 @@ package squeek.appleskin.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -49,7 +50,11 @@ public abstract class LungeSaturationFixMixin {
 		}
 
 		ItemStack weapon = player.getMainHandItem();
-		int lungeLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.LUNGE, weapon);
+		int lungeLevel = EnchantmentHelper.getItemEnchantmentLevel(
+				player.level().registryAccess()
+						.lookupOrThrow(Registries.ENCHANTMENT)
+						.getOrThrow(Enchantments.LUNGE),
+				weapon);
 
 		if (lungeLevel <= 0) {
 			return;
