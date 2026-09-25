@@ -1,15 +1,14 @@
 {
   "required": true,
   "package": "squeek.appleskin.mixin",
-  "compatibilityLevel": "JAVA_25",
+  "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ServerPlayerMixin",
-    "PlayerListMixin",
-    "FoodDataMixin"
+    "ServerPlayerEntityMixin",
+    "PlayerManagerMixin",
+    "HungerManagerMixin"
   ],
   "client": [
-    "HudMixin",
-    "LungeSaturationFixMixin"
+    "InGameHudMixin"
   ],
   "injectors": {
     "defaultRequire": 1,

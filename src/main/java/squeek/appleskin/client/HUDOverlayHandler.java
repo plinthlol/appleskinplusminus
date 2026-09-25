@@ -2,14 +2,12 @@ package squeek.appleskin.client;
 
 import java.util.Random;
 import java.util.Vector;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.food.FoodData;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.entity.player.HungerManager;
+import net.minecraft.entity.player.PlayerEntity;
 import squeek.appleskin.api.event.HUDOverlayEvent;
-import squeek.appleskin.api.handler.EventHandler;
 import squeek.appleskin.helpers.ColorHelper;
 import squeek.appleskin.helpers.ExhaustionHelper;
 import squeek.appleskin.helpers.FoodHelper;
@@ -30,28 +28,28 @@ public class HUDOverlayHandler {
         INSTANCE = new HUDOverlayHandler();
     }
 
-    public void onPreRenderFood(GuiGraphicsExtractor context, Player player, int top, int right) {
+    public void onPreRenderFood(DrawContext context, PlayerEntity player, int top, int right) {
         assert (player != null);
         float exhaustion = ExhaustionHelper.getExhaustion(player);
         HUDOverlayEvent.Exhaustion renderEvent = new HUDOverlayEvent.Exhaustion(exhaustion, right, top, context);
-        ((EventHandler) HUDOverlayEvent.Exhaustion.EVENT.invoker()).interact(renderEvent);
+        HUDOverlayEvent.Exhaustion.EVENT.invoker().interact(renderEvent);
         if (!renderEvent.isCanceled) {
             this.drawExhaustionOverlay(renderEvent);
         }
     }
 
-    public void onRenderFood(GuiGraphicsExtractor context, Player player, int top, int right) {
+    public void onRenderFood(DrawContext context, PlayerEntity player, int top, int right) {
         assert (player != null);
-        Minecraft mc = Minecraft.getInstance();
-        FoodData stats = player.getFoodData();
+        MinecraftClient mc = MinecraftClient.getInstance();
+        HungerManager stats = player.getHungerManager();
         HUDOverlayEvent.Saturation saturationRenderEvent = new HUDOverlayEvent.Saturation(stats.getSaturationLevel(), right, top, context);
-        ((EventHandler) HUDOverlayEvent.Saturation.EVENT.invoker()).interact(saturationRenderEvent);
+        HUDOverlayEvent.Saturation.EVENT.invoker().interact(saturationRenderEvent);
         if (!saturationRenderEvent.isCanceled) {
-            this.drawSaturationOverlay(saturationRenderEvent, mc, mc.gui.hud.getGuiTicks());
+            this.drawSaturationOverlay(saturationRenderEvent, mc, mc.inGameHud.getTicks());
         }
     }
 
-    public void drawSaturationOverlay(GuiGraphicsExtractor context, float saturationLevel, Minecraft mc, int right, int top, int guiTicks) {
+    public void drawSaturationOverlay(DrawContext context, float saturationLevel, MinecraftClient mc, int right, int top, int guiTicks) {
         if (saturationLevel < 0.0f) {
             return;
         }
@@ -74,20 +72,20 @@ public class HUDOverlayHandler {
             } else if (effectiveSaturationOfBar > 0.25) {
                 u = 1 * iconSize;
             }
-            context.blit(RenderPipelines.GUI_TEXTURED, TextureHelper.MOD_ICONS, x, y, (float) u, 0.0f, iconSize, iconSize, 256, 256, alphaColor);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, TextureHelper.MOD_ICONS, x, y, u, 0, iconSize, iconSize, 256, 256, alphaColor);
         }
     }
 
-    public void drawExhaustionOverlay(GuiGraphicsExtractor context, float exhaustion, int right, int top) {
+    public void drawExhaustionOverlay(DrawContext context, float exhaustion, int right, int top) {
         float maxExhaustion = FoodHelper.MAX_EXHAUSTION;
         float ratio = Math.min(1.0f, Math.max(0.0f, exhaustion / maxExhaustion));
         int width = (int) (ratio * 81.0f);
         int height = 9;
         int color = ColorHelper.argbFromRGBA(1.0f, 1.0f, 1.0f, 0.75f);
-        context.blit(RenderPipelines.GUI_TEXTURED, TextureHelper.MOD_ICONS, right - width, top, (float) (81 - width), 18.0f, width, height, 256, 256, color);
+        context.drawTexture(RenderPipelines.GUI_TEXTURED, TextureHelper.MOD_ICONS, right - width, top, 81 - width, 18, width, height, 256, 256, color);
     }
 
-    private void drawSaturationOverlay(HUDOverlayEvent.Saturation event, Minecraft mc, int guiTicks) {
+    private void drawSaturationOverlay(HUDOverlayEvent.Saturation event, MinecraftClient mc, int guiTicks) {
         this.drawSaturationOverlay(event.context, event.saturationLevel, mc, event.x, event.y, guiTicks);
     }
 
@@ -103,8 +101,8 @@ public class HUDOverlayHandler {
         private OffsetsCache() {
         }
 
-        protected void generate(int guiTicks, Player player) {
-            FoodData hungerManager = player.getFoodData();
+        protected void generate(int guiTicks, PlayerEntity player) {
+            HungerManager hungerManager = player.getHungerManager();
             float saturationLevel = hungerManager.getSaturationLevel();
             int foodLevel = hungerManager.getFoodLevel();
             boolean shouldAnimatedFood = saturationLevel <= 0.0f && guiTicks % (foodLevel * 3 + 1) == 0;
@@ -129,7 +127,7 @@ public class HUDOverlayHandler {
             }
         }
 
-        public Vector<IntPoint> foodBarOffsets(int guiTicks, Player player) {
+        public Vector<IntPoint> foodBarOffsets(int guiTicks, PlayerEntity player) {
             if (guiTicks != this.lastGuiTick) {
                 this.generate(guiTicks, player);
                 this.lastGuiTick = guiTicks;

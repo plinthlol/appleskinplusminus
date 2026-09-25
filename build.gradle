@@ -16,6 +16,7 @@ repositories {
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
@@ -32,30 +33,29 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.incremental = true
-	it.options.release = 25
+	it.options.release = 21
 }
 
 java {
-	// Sources jar generation is disabled; re-add `withSourcesJar()` to restore it.
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	withSourcesJar()
 
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
-
+	// Need to conceptualize how loom handles intermediary; in order to have the correct mappings, we need to set from.
 	from("LICENSE") {
-		rename { "${it}_$projectName"}
+		rename { "${it}_${project.base.archivesName.get()}" }
 	}
 }
 
 // configure the maven publication
 publishing {
 	publications {
-		create("mavenJava", MavenPublication) {
+		mavenJava(MavenPublication) {
 			from components.java
 		}
 	}
@@ -64,7 +64,7 @@ publishing {
 	repositories {
 		// Add repositories to publish to here.
 		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
+		// The repositories in this block will be used for publishing your artifact, not for
 		// retrieving dependencies.
 	}
 }
